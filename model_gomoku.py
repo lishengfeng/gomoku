@@ -17,6 +17,7 @@ save_dir = './saved'
 best_policy_path = save_dir + '/best_policy.model'
 his_path = save_dir + '/model_history'
 
+
 class GomokuModel:
     def __init__(self, model_file=None, model=None):
         self.model_config = configs.ModelConfig()
@@ -43,7 +44,7 @@ class GomokuModel:
         board_width = bc.width
         board_height = bc.height
         his_size = bc.his_size
-        in_x = x = Input((2 * his_size + 1, board_width, board_height))
+        in_x = x = Input((2 * his_size + 3, board_width, board_height))
         x = Conv2D(filters=mc.cnn_filter_num,
                    kernel_size=mc.cnn_first_filter_size, padding="same",
                    data_format="channels_first", use_bias=False,
@@ -132,7 +133,7 @@ class GomokuModel:
         # reshape -1 :The criterion to satisfy for providing the new shape
         # is that 'The new shape should be compatible with the original shape'
         act_probs, value = self.policy_value(
-                current_state.reshape(-1, 2 * his_size + 1, board_width,
+                current_state.reshape(-1, 2 * his_size + 3, board_width,
                                       board_height))
         act_probs = zip(legal_positions, act_probs.flatten()[legal_positions])
         return act_probs, value[0][0]

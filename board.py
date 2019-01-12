@@ -39,6 +39,7 @@ class Board:
         self.available_positions = list(range(width * height))
         his_size = bc.his_size
         self.last_n_move = [-1] * (his_size * 2 + 1)
+        self.states = {}
 
     def position_to_place(self, move):
         """
@@ -72,7 +73,11 @@ class Board:
         X(t-n) is the historical move of current player as well as Y(t-n)
         """
         his_size = self.his_size
-        square_state = np.zeros((2 * his_size + 1, self.width, self.height))
+        # 1 feature map for locations possessed by play 1
+        # 1 feature map for locations possessed by play 2
+        # 1 feature map for whether current player is the first player or not
+        # several feature maps represent the history of play 1 and player 2
+        square_state = np.zeros((2 * his_size + 3, self.width, self.height))
         if self.states:
             moves, players = np.array(list(zip(*self.states.items())))
             move_curr = moves[players == self.current_player]

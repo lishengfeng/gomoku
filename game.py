@@ -36,10 +36,8 @@ class Game:
         if start_player not in (0, 1):
             raise Exception('start_player should be either 0 (player1 first) '
                             'or 1 (player2 first)')
-        self.board.init_board(start_player)
+        self.board.init_board()
         p1, p2 = self.board.players
-        player1.set_player_ind(p1)
-        player2.set_player_ind(p2)
         players = {p1: player1, p2: player2}
         if is_shown:
             self.graphic()
@@ -54,7 +52,8 @@ class Game:
             if end:
                 if is_shown:
                     if winner != -1:
-                        print("Game end. Winner is", players[winner])
+                        print("Game end. Winner is",
+                              players[winner], winner)
                     else:
                         print("Game end. Tie")
                 return winner

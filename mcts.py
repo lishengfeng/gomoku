@@ -150,7 +150,7 @@ class MCTS:
                       for act, node in self._root.children.items()]
         acts, visits = zip(*act_visits)
         temp = self._mcts_config.temperature
-        act_probs = softmax(1.0 / temp * np.log(np.array(visits)))
+        act_probs = softmax(1.0 / temp * np.log(np.array(visits) + 1e-10))
 
         return acts, act_probs
 
@@ -206,3 +206,6 @@ class MCTSPlayer:
                 return move
         else:
             print("WARNING: the board is full")
+
+    def __str__(self):
+        return "MCTS Player"

@@ -2,6 +2,7 @@ import random
 from collections import defaultdict, deque
 
 import numpy as np
+from keras.models import clone_model
 
 from board import Board
 from configs import TrainConfig, BoardConfig
@@ -9,7 +10,6 @@ from game import Game
 from mcts import MCTSPlayer
 from model_gomoku import GomokuModel, best_policy_path, his_path, \
     save_model_history
-from keras.models import clone_model
 
 
 class Train:
