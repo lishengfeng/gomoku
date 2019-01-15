@@ -8,8 +8,8 @@ class ModelConfig:
 
 
 class BoardConfig:
-    width = 19
-    height = 19
+    width = 11
+    height = 11
     n_in_row = 5
     his_size = 5
     first_player = 0
@@ -23,7 +23,7 @@ class MCTSConfig:
     the prior more.
     temp: temperature parameter in (0, 1] controls the level of exploration
     """
-    n_playout = 1600
+    n_playout = 1200
     c_put = 5
     # with the default temp=1e-3, it is almost equivalent
     # to choosing the move with the highest prob
@@ -31,15 +31,15 @@ class MCTSConfig:
 
 
 class TrainConfig:
-    game_batch_num = 10000
+    game_batch_num = 5000
     play_batch_size = 1
     # mini-batch size for training
-    batch_size = 512
+    batch_size = 200
     # num of train_steps for each updateh
     epochs = 5
     # adaptively adjust the learning rate based on KL
     learn_rate = 1e-3
     lr_multiplier = 1.0
     kl_targ = 0.025
-    check_freq = 1000
-    evaluate_match_num = 100
+    check_freq = 400
+    evaluate_match_num = 50
