@@ -35,7 +35,7 @@ class Train:
         self.game = Game(self.board)
         # number of states when one episode ends (winner appears)
         self.episode_len = 0
-        self.model_gomoku = GomokuModel(init_model)
+        self.model_gomoku = GomokuModel(model_file=init_model)
         self.mcts_player = MCTSPlayer(self.model_gomoku.policy_value_fn,
                                       is_selfplay=True)
         self.previous_model = None
@@ -176,5 +176,6 @@ class Train:
 
 
 if __name__ == '__main__':
+    # train = Train(best_policy_path)
     train = Train()
     train.run()
