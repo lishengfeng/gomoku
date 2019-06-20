@@ -67,9 +67,9 @@ class ModelCheckpoint(Callback):
         filepath: string, path to save the model file.
     """
 
-    def __init__(self, filename):
+    def __init__(self):
         super().__init__()
-        self.filepath = '{}/{}{}.model'.format(self.filepath_config.folder, filename, self.filepath_config.suffix)
+        self.filepath = '{}.model'.format(self.filepath_config.filepath)
 
     def on_module_updated(self, batch):
         """ save model params to file """

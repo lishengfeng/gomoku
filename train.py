@@ -158,7 +158,7 @@ class Train:
 
     def save_states(self):
         filepath_config = FilepathConfig()
-        filepath = '{}/gomoku{}.states'.format(filepath_config.folder, filepath_config.suffix)
+        filepath = '{}.states'.format(filepath_config.filepath)
         pickle.dump(self.state_buffer, open(filepath, 'wb'), protocol=2)
 
     def run(self):
