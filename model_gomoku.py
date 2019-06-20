@@ -10,6 +10,7 @@ from keras.layers.merge import Add
 from keras.layers.normalization import BatchNormalization
 from keras.optimizers import Adam
 from keras.regularizers import l2
+import os.path
 
 import configs
 
@@ -19,9 +20,10 @@ his_path = save_dir + '/model_history'
 
 
 class GomokuModel:
-    def __init__(self, model_file=None, model=None):
+    def __init__(self, model=None):
         self.model_config = configs.ModelConfig()
         self.board_config = configs.BoardConfig()
+        self.filepath_config = configs.FilepathConfig()
         if model:
             self.model = model
         else:
@@ -34,7 +36,9 @@ class GomokuModel:
             losses = ['categorical_crossentropy', 'mean_squared_error']
             self.model.compile(optimizer=opt, loss=losses)
 
-            if model_file:
+            model_file = '{}.model'.format(self.filepath_config.filepath)
+
+            if os.path.isfile(model_file):
                 net_params = pickle.load(open(model_file, 'rb'))
                 self.model.set_weights(net_params)
 

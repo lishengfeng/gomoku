@@ -2,6 +2,7 @@ import random
 from collections import defaultdict, deque
 import callbacks as cbks
 import pickle
+import os.path
 
 import numpy as np
 from keras.models import clone_model
@@ -15,7 +16,8 @@ from model_gomoku import GomokuModel, best_policy_path, his_path, \
 
 
 class Train:
-    def __init__(self, init_model=None):
+    def __init__(self):
+        self.filepath_config = FilepathConfig()
         self.config = TrainConfig()
         self.board_config = BoardConfig()
         self.board_width = self.board_config.width
@@ -37,11 +39,17 @@ class Train:
         self.game = Game(self.board)
         # number of states when one episode ends (winner appears)
         self.episode_len = 0
-        self.model_gomoku = GomokuModel(model_file=init_model)
+        self.model_gomoku = GomokuModel()
         self.mcts_player = MCTSPlayer(self.model_gomoku.policy_value_fn,
                                       is_selfplay=True)
         self.previous_model = None
-        self.state_buffer = deque()
+        filepath = self.filepath_config.filepath
+
+        states_file = '{}.states'.format(filepath)
+        if os.path.isfile(states_file):
+            self.state_buffer = pickle.load(open(states_file, 'rb'))
+        else:
+            self.state_buffer = deque()
 
     def get_equi_data(self, play_data):
         """augment the data set by rotation and flipping
@@ -165,7 +173,7 @@ class Train:
         """ Start training
         """
         try:
-            model_checkpoint = cbks.ModelCheckpoint('gomoku')
+            model_checkpoint = cbks.ModelCheckpoint()
             losses = []
             for i in range(self.game_batch_num):
                 self.collect_selfplay_data(self.play_batch_size)
