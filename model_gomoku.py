@@ -154,15 +154,6 @@ class GomokuModel:
                        verbose=0)
         return loss[0], entropy
 
-    def get_policy_param(self):
-        net_params = self.model.get_weights()
-        return net_params
-
-    def save_model(self, model_file):
-        """ save model params to file """
-        net_params = self.get_policy_param()
-        pickle.dump(net_params, open(model_file, 'wb'), protocol=2)
-
 
 def save_model_history(history_path, history):
     with open(history_path, 'w+b') as file_pi:

@@ -35,7 +35,7 @@ class TrainConfig:
     play_batch_size = 1
     # mini-batch size for training
     batch_size = 200
-    # num of train_steps for each updateh
+    # num of train_steps for each update
     epochs = 5
     # adaptively adjust the learning rate based on KL
     learn_rate = 1e-3
@@ -43,3 +43,23 @@ class TrainConfig:
     kl_targ = 0.025
     check_freq = 400
     evaluate_match_num = 50
+
+
+class FilepathConfig:
+
+    suffix = None
+    folder = None
+
+    def __init__(self):
+        self.train_config = TrainConfig()
+        self.board_config = BoardConfig()
+        self.model_config = ModelConfig()
+        global suffix, folder
+        suffix = "-board{:02d}x{:02d}x{:02d}-model{:02d}x{:02d}x{:02d}x{:02d}-train{:02d}".format(
+                self.board_config.width,
+                self.board_config.height, self.board_config.his_size, self.model_config.cnn_filter_num,
+                self.model_config.cnn_first_filter_size,
+                self.model_config.cnn_filter_size, self.model_config.res_layer_num,
+                self.train_config.game_batch_num)
+        folder = './saved'
+

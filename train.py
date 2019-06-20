@@ -1,5 +1,6 @@
 import random
 from collections import defaultdict, deque
+import callbacks as cbks
 
 import numpy as np
 from keras.models import clone_model
@@ -145,10 +146,18 @@ class Train:
                     win_cnt[1], win_cnt[2], win_cnt[-1]))
         return win_ratio
 
+    def mode_callback(self, batch, callbacks=None):
+        _callbacks = []
+        _callbacks += (callbacks or [])
+        callbacks = cbks.CallbackList(_callbacks)
+        callbacks.set_model(self.model_gomoku)
+        callbacks.on_module_updated(batch)
+
     def run(self):
         """ Start training
         """
         try:
+            model_checkpoint = cbks.ModelCheckpoint('gomoku')
             losses = []
             for i in range(self.game_batch_num):
                 self.collect_selfplay_data(self.play_batch_size)
@@ -168,9 +177,10 @@ class Train:
                         model = self.model_gomoku.model
                         self.previous_model = clone_model(model)
                         self.previous_model.set_weights(model.get_weights())
-                        print("New best policy!!!!!!!!")
+                        # print("New best policy!!!!!!!!")
                         # update the best_policy
-                        self.model_gomoku.save_model(best_policy_path)
+                        self.mode_callback(i, [model_checkpoint])
+                        # self.model_gomoku.save_model(best_policy_path)
         except KeyboardInterrupt:
             print('\n\rquit')
 
