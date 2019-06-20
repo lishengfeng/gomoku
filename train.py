@@ -1,12 +1,13 @@
 import random
 from collections import defaultdict, deque
 import callbacks as cbks
+import pickle
 
 import numpy as np
 from keras.models import clone_model
 
 from board import Board
-from configs import TrainConfig, BoardConfig
+from configs import TrainConfig, BoardConfig, FilepathConfig
 from game import Game
 from mcts import MCTSPlayer
 from model_gomoku import GomokuModel, best_policy_path, his_path, \
@@ -40,6 +41,7 @@ class Train:
         self.mcts_player = MCTSPlayer(self.model_gomoku.policy_value_fn,
                                       is_selfplay=True)
         self.previous_model = None
+        self.state_buffer = deque()
 
     def get_equi_data(self, play_data):
         """augment the data set by rotation and flipping
@@ -67,12 +69,13 @@ class Train:
     def collect_selfplay_data(self, n_games=1):
         """collect self-play data for training"""
         for i in range(n_games):
-            winner, play_data = self.game.start_self_play(self.mcts_player)
+            winner, play_data, state_his = self.game.start_self_play(self.mcts_player)
             play_data = list(play_data)[:]
             self.episode_len = len(play_data)
             # augment the data
             play_data = self.get_equi_data(play_data)
             self.data_buffer.extend(play_data)
+            self.state_buffer.append(state_his)
 
     def policy_update(self):
         """update the policy-value net"""
@@ -138,7 +141,7 @@ class Train:
                 winner = self.game.start_play(current_mcts_player,
                                               previous_player,
                                               start_player=i % 2,
-                                              is_shown=1)
+                                              is_shown=False)
                 win_cnt[winner] += 1
             # win_cnt[-1] is tie.
             win_ratio = 1.0 * (win_cnt[1] + 0.5 * win_cnt[-1]) / n_games
@@ -146,12 +149,17 @@ class Train:
                     win_cnt[1], win_cnt[2], win_cnt[-1]))
         return win_ratio
 
-    def mode_callback(self, batch, callbacks=None):
+    def model_callback(self, batch, callbacks=None):
         _callbacks = []
         _callbacks += (callbacks or [])
         callbacks = cbks.CallbackList(_callbacks)
         callbacks.set_model(self.model_gomoku)
         callbacks.on_module_updated(batch)
+
+    def save_states(self):
+        filepath_config = FilepathConfig()
+        filepath = '{}/gomoku{}.states'.format(filepath_config.folder, filepath_config.suffix)
+        pickle.dump(self.state_buffer, open(filepath, 'wb'), protocol=2)
 
     def run(self):
         """ Start training
@@ -161,15 +169,15 @@ class Train:
             losses = []
             for i in range(self.game_batch_num):
                 self.collect_selfplay_data(self.play_batch_size)
-                print("batch i:{}, episode_len:{}".format(
-                        i + 1, self.episode_len))
+                # print("batch i:{}, episode_len:{}".format(
+                #         i + 1, self.episode_len))
                 if len(self.data_buffer) > self.batch_size:
                     loss, entropy = self.policy_update()
                     losses.append(loss)
                 # check the performance of the current model,
                 # and save the model params
                 if (i + 1) % self.check_freq == 0:
-                    print("current self-play batch: {}".format(i + 1))
+                    # print("current self-play batch: {}".format(i + 1))
                     win_ratio = self.policy_evaluate()
                     history = {'loss': losses}
                     save_model_history(his_path, history)
@@ -179,7 +187,8 @@ class Train:
                         self.previous_model.set_weights(model.get_weights())
                         # print("New best policy!!!!!!!!")
                         # update the best_policy
-                        self.mode_callback(i, [model_checkpoint])
+                        self.model_callback(i, [model_checkpoint])
+                        self.save_states()
                         # self.model_gomoku.save_model(best_policy_path)
         except KeyboardInterrupt:
             print('\n\rquit')

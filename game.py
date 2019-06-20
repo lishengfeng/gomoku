@@ -1,9 +1,14 @@
 import numpy as np
+from collections import deque
 
 
 class Game:
     def __init__(self, board):
         self.board = board
+        self.state_history = deque()
+
+    def save_state(self):
+        self.state_history.append(self.board.states)
 
     def graphic(self):
         """Draw the board and show game info"""
@@ -63,6 +68,7 @@ class Game:
         and store the self-play data: (state, mcts_probs, z) for training
         """
         self.board.init_board()
+        self.state_history.clear()
         states, mcts_probs, current_players = [], [], []
         while True:
             move, move_probs = player.get_action(self.board,
@@ -74,7 +80,8 @@ class Game:
             # perform a move
             self.board.do_move(move)
             if is_shown:
-                self.graphic()
+                self.save_state()
+                # self.graphic()
             end, winner = self.board.game_end()
             if end:
                 # winner from the perspective of the current player of each
@@ -87,7 +94,9 @@ class Game:
                 player.reset_player()
                 if is_shown:
                     if winner != -1:
-                        print("Game end. Winner is player:", winner)
+                        pass
+                        # print("Game end. Winner is player:", winner)
                     else:
-                        print("Game end. Tie")
-                return winner, zip(states, mcts_probs, winners_z)
+                        pass
+                        # print("Game end. Tie")
+                return winner, zip(states, mcts_probs, winners_z), self.state_history
