@@ -48,14 +48,14 @@ class Callback(object):
 
     def __init__(self):
         self.filepath_config = FilepathConfig()
-        self.model = None
+        self.gomoku_model = None
         pass
 
     def set_params(self, params):
         self.params = params
 
     def set_model(self, model):
-        self.model = model
+        self.gomoku_model = model
 
     def on_module_updated(self, batch):
         pass
@@ -73,4 +73,4 @@ class ModelCheckpoint(Callback):
 
     def on_module_updated(self, batch):
         """ save model params to file """
-        pickle.dump(self.model.get_weights(), open(self.filepath, 'wb'), protocol=2)
+        pickle.dump(self.gomoku_model.model.get_weights(), open(self.filepath, 'wb'), protocol=2)
