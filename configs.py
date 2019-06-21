@@ -1,17 +1,17 @@
 class ModelConfig:
-    cnn_filter_num = 128
+    cnn_filter_num = 64
     cnn_first_filter_size = 3
     cnn_filter_size = 3
-    res_layer_num = 7
+    res_layer_num = 0
     l2_reg = 1e-4
     value_fc_size = 128
 
 
 class BoardConfig:
-    width = 11
-    height = 11
+    width = 8
+    height = 8
     n_in_row = 5
-    his_size = 5
+    his_size = 0
     first_player = 0
 
 
@@ -41,7 +41,7 @@ class TrainConfig:
     learn_rate = 1e-3
     lr_multiplier = 1.0
     kl_targ = 0.025
-    check_freq = 400
+    check_freq = 100
     evaluate_match_num = 50
 
 
