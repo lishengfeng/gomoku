@@ -46,8 +46,7 @@ class Train:
 
         states_file = '{}.states'.format(filepath)
         if os.path.isfile(states_file):
-            session_state = pickle.load(open(states_file, 'rb'))
-            self.state_buffer = session_state['batch']
+            self.state_buffer = pickle.load(open(states_file, 'rb'))
         else:
             self.state_buffer = deque()
 
@@ -59,7 +58,8 @@ class Train:
 
         session_file = '{}.session'.format(filepath)
         if os.path.isfile(session_file):
-            self.start_batch = pickle.load(open(session_file, 'rb'))
+            session_state = pickle.load(open(session_file, 'rb'))
+            self.start_batch = session_state['batch']
         else:
             self.start_batch = 0
 
@@ -89,7 +89,7 @@ class Train:
     def collect_selfplay_data(self, n_games=1):
         """collect self-play data for training"""
         for i in range(n_games):
-            winner, play_data, state_his = self.game.start_self_play(self.mcts_player)
+            winner, play_data, state_his = self.game.start_self_play(self.mcts_player, is_shown=True)
             play_data = list(play_data)[:]
             self.episode_len = len(play_data)
             # augment the data
@@ -204,6 +204,8 @@ class Train:
                 #         i + 1, self.episode_len))
                 if len(self.data_buffer) > self.batch_size:
                     self.policy_update()
+                    self.save_session_state(i + 1)
+                    self.save_training_history()
                     # loss, entropy = self.policy_update()
                     # losses.append(loss)
                 # check the performance of the current model,
@@ -221,7 +223,6 @@ class Train:
                         # update the best_policy
                         self.model_callback(i, [model_checkpoint])
                         self.save_states()
-                        self.save_training_history()
                         # self.model_gomoku.save_model(best_policy_path)
         except KeyboardInterrupt:
             print('\n\rquit')
