@@ -168,8 +168,8 @@ class Train:
                 win_cnt[winner] += 1
             # win_cnt[-1] is tie.
             win_ratio = 1.0 * (win_cnt[1] + 0.5 * win_cnt[-1]) / n_games
-            print("Current vs Previous, win: {}, lose: {}, tie:{}".format(
-                    win_cnt[1], win_cnt[2], win_cnt[-1]))
+            # print("Current vs Previous, win: {}, lose: {}, tie:{}".format(
+            #         win_cnt[1], win_cnt[2], win_cnt[-1]))
         return win_ratio
 
     def model_callback(self, batch, callbacks=None):
