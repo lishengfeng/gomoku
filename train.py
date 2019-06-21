@@ -127,10 +127,10 @@ class Train:
 
         explained_var_old = (1 -
                              np.var(np.array(winner_batch) - old_v.flatten()) /
-                             np.var(np.array(winner_batch)))
+                             (np.var(np.array(winner_batch)) or 1))
         explained_var_new = (1 -
                              np.var(np.array(winner_batch) - new_v.flatten()) /
-                             np.var(np.array(winner_batch)))
+                             (np.var(np.array(winner_batch)) or 1))
         his_record = {'kl': kl, 'lr_multiplier': self.lr_multiplier, 'loss': loss, 'entropy': entropy,
                       'explained_var_old': explained_var_old, 'explained_var_new': explained_var_new}
         self.history_buffer.append(his_record)
