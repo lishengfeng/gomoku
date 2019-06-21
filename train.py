@@ -46,7 +46,8 @@ class Train:
 
         states_file = '{}.states'.format(filepath)
         if os.path.isfile(states_file):
-            self.state_buffer = pickle.load(open(states_file, 'rb'))
+            session_state = pickle.load(open(states_file, 'rb'))
+            self.state_buffer = session_state['batch']
         else:
             self.state_buffer = deque()
 
@@ -55,6 +56,12 @@ class Train:
             self.history_buffer = pickle.load(open(history_file, 'rb'))
         else:
             self.history_buffer = deque()
+
+        session_file = '{}.session'.format(filepath)
+        if os.path.isfile(session_file):
+            self.start_batch = pickle.load(open(session_file, 'rb'))
+        else:
+            self.start_batch = 0
 
     def get_equi_data(self, play_data):
         """augment the data set by rotation and flipping
@@ -173,14 +180,17 @@ class Train:
         callbacks.on_module_updated(batch)
 
     def save_states(self):
-        filepath_config = FilepathConfig()
-        filepath = '{}.states'.format(filepath_config.filepath)
+        filepath = '{}.states'.format(self.filepath_config.filepath)
         pickle.dump(self.state_buffer, open(filepath, 'wb'), protocol=2)
 
     def save_training_history(self):
-        filepath_config = FilepathConfig()
-        filepath = '{}.history'.format(filepath_config.filepath)
+        filepath = '{}.history'.format(self.filepath_config.filepath)
         pickle.dump(self.history_buffer, open(filepath, 'wb'), protocol=2)
+
+    def save_session_state(self, batch):
+        filepath = '{}.session'.format(self.filepath_config.filepath)
+        session_state = {'batch': batch}
+        pickle.dump(session_state, open(filepath, 'wb'), protocol=2)
 
     def run(self):
         """ Start training
@@ -188,7 +198,7 @@ class Train:
         try:
             model_checkpoint = cbks.ModelCheckpoint()
             # losses = []
-            for i in range(self.game_batch_num):
+            for i in range(self.start_batch, self.game_batch_num):
                 self.collect_selfplay_data(self.play_batch_size)
                 # print("batch i:{}, episode_len:{}".format(
                 #         i + 1, self.episode_len))
