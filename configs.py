@@ -47,13 +47,10 @@ class TrainConfig:
 
 class FilepathConfig:
 
-    filepath = None
-
     def __init__(self):
         self.train_config = TrainConfig()
         self.board_config = BoardConfig()
         self.model_config = ModelConfig()
-        global filepath
         suffix = "gomoku-board{:02d}x{:02d}x{:02d}-model{:02d}x{:02d}x{:02d}x{:02d}-train{:02d}".format(
                 self.board_config.width,
                 self.board_config.height, self.board_config.his_size, self.model_config.cnn_filter_num,
@@ -61,7 +58,7 @@ class FilepathConfig:
                 self.model_config.cnn_filter_size, self.model_config.res_layer_num,
                 self.train_config.game_batch_num)
         folder = './saved'
-        filepath = '{}/{}'.format(folder, suffix)
+        self.filepath = '{}/{}'.format(folder, suffix)
 
 
 
