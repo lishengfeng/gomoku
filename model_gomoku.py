@@ -1,3 +1,4 @@
+import os.path
 import pickle
 
 import keras.backend as K
@@ -10,13 +11,8 @@ from keras.layers.merge import Add
 from keras.layers.normalization import BatchNormalization
 from keras.optimizers import Adam
 from keras.regularizers import l2
-import os.path
 
 import configs
-
-save_dir = './saved'
-best_policy_path = save_dir + '/best_policy.model'
-his_path = save_dir + '/model_history'
 
 
 class GomokuModel:
@@ -157,8 +153,3 @@ class GomokuModel:
                        validation_split=0.2, batch_size=len(state_input),
                        verbose=0)
         return loss[0], entropy
-
-
-def save_model_history(history_path, history):
-    with open(history_path, 'w+b') as file_pi:
-        pickle.dump(history, file_pi)
