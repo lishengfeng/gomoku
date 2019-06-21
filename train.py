@@ -215,6 +215,7 @@ class Train:
                     self.policy_update()
                     self.save_session_state(i + 1)
                     self.save_training_history()
+                    print('current batch: ' + str(i))
                     # loss, entropy = self.policy_update()
                     # losses.append(loss)
                 # check the performance of the current model,
