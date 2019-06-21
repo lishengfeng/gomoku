@@ -44,11 +44,17 @@ class Train:
         self.previous_model = None
         filepath = self.filepath_config.filepath
 
-        states_file = '{}.states'.format(filepath)
-        if os.path.isfile(states_file):
-            self.state_buffer = pickle.load(open(states_file, 'rb'))
+        selfplay_states_file = '{}.selfplay.states'.format(filepath)
+        if os.path.isfile(selfplay_states_file):
+            self.selfplay_state_buffer = pickle.load(open(selfplay_states_file, 'rb'))
         else:
-            self.state_buffer = deque()
+            self.selfplay_state_buffer = deque()
+
+        evalplay_states_file = '{}.evalplay.states'.format(filepath)
+        if os.path.isfile(evalplay_states_file):
+            self.evalplay_state_buffer = pickle.load(open(evalplay_states_file, 'rb'))
+        else:
+            self.evalplay_state_buffer = deque()
 
         history_file = '{}.history'.format(filepath)
         if os.path.isfile(history_file):
@@ -95,7 +101,7 @@ class Train:
             # augment the data
             play_data = self.get_equi_data(play_data)
             self.data_buffer.extend(play_data)
-            self.state_buffer.append(state_his)
+            self.selfplay_state_buffer.append(state_his)
 
     def policy_update(self):
         """update the policy-value net"""
@@ -161,10 +167,11 @@ class Train:
             current_mcts_player = MCTSPlayer(self.model_gomoku.policy_value_fn)
             win_cnt = defaultdict(int)
             for i in range(n_games):
-                winner = self.game.start_play(current_mcts_player,
-                                              previous_player,
-                                              start_player=i % 2,
-                                              is_shown=False)
+                winner, state_his = self.game.start_play(current_mcts_player,
+                                                         previous_player,
+                                                         start_player=i % 2,
+                                                         is_shown=False, is_recorded=True)
+                self.evalplay_state_buffer.append(state_his)
                 win_cnt[winner] += 1
             # win_cnt[-1] is tie.
             win_ratio = 1.0 * (win_cnt[1] + 0.5 * win_cnt[-1]) / n_games
@@ -180,8 +187,10 @@ class Train:
         callbacks.on_module_updated(batch)
 
     def save_states(self):
-        filepath = '{}.states'.format(self.filepath_config.filepath)
-        pickle.dump(self.state_buffer, open(filepath, 'wb'), protocol=2)
+        selfplay_filepath = '{}.selfplay.states'.format(self.filepath_config.filepath)
+        pickle.dump(self.selfplay_state_buffer, open(selfplay_filepath, 'wb'), protocol=2)
+        evalplay_filepath = '{}.evalplay.states'.format(self.filepath_config.filepath)
+        pickle.dump(self.evalplay_state_buffer, open(evalplay_filepath, 'wb'), protocol=2)
 
     def save_training_history(self):
         filepath = '{}.history'.format(self.filepath_config.filepath)

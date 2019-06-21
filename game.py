@@ -36,12 +36,13 @@ class Game:
                     print('_'.center(8), end='')
             print('\r\n\r\n')
 
-    def start_play(self, player1, player2, start_player=0, is_shown=True):
+    def start_play(self, player1, player2, start_player=0, is_shown=True, is_recorded=False):
         """start a game between two players"""
         if start_player not in (0, 1):
             raise Exception('start_player should be either 0 (player1 first) '
                             'or 1 (player2 first)')
         self.board.init_board()
+        self.state_history.clear()
         p1, p2 = self.board.players
         players = {p1: player1, p2: player2}
         if is_shown:
@@ -51,6 +52,8 @@ class Game:
             player_in_turn = players[current_player]
             move = player_in_turn.get_action(self.board)
             self.board.do_move(move)
+            if is_recorded:
+                self.save_state()
             if is_shown:
                 self.graphic()
             end, winner = self.board.game_end()
@@ -61,7 +64,7 @@ class Game:
                               players[winner], winner)
                     else:
                         print("Game end. Tie")
-                return winner
+                return winner, self.state_history
 
     def start_self_play(self, player, is_shown=False):
         """ start a self-play game using a MCTS player, reuse the search tree,
