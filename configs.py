@@ -11,7 +11,7 @@ class BoardConfig:
     width = 8
     height = 8
     n_in_row = 5
-    his_size = 0
+    his_size = 5
     first_player = 0
 
 
