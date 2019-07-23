@@ -32,7 +32,8 @@ class MCTSConfig:
 
 class TrainConfig:
     game_batch_num = 5000
-    play_batch_size = 1
+    # selfplay times per iteration
+    selfplay_per_iter = 10
     # mini-batch size for training
     batch_size = 200
     # num of train_steps for each update
@@ -43,6 +44,8 @@ class TrainConfig:
     kl_targ = 0.025
     check_freq = 100
     evaluate_match_num = 50
+    # parallel training for selfplay
+    num_train_nodes = 20
 
 
 class FilepathConfig:
