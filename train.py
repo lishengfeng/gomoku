@@ -1,8 +1,10 @@
 import os.path
 import pickle
 import random
+import sys
 from collections import defaultdict, deque
 
+import mpi4py.futures
 import numpy as np
 from keras.models import clone_model
 
@@ -12,11 +14,10 @@ from configs import TrainConfig, BoardConfig, FilepathConfig
 from game import Game
 from mcts import MCTSPlayer
 from model_gomoku import GomokuModel
-import mpi4py.futures
 
 
 class Train:
-    def __init__(self):
+    def __init__(self, num_processes):
         self.filepath_config = FilepathConfig()
         self.config = TrainConfig()
         self.board_config = BoardConfig()
@@ -43,7 +44,7 @@ class Train:
         self.mcts_player = MCTSPlayer(self.model_gomoku.policy_value_fn,
                                       is_selfplay=True)
         self.previous_model = None
-        self.num_train_nodes = self.config.num_train_nodes
+        self.num_processes = num_processes
 
         filepath = self.filepath_config.filepath
 
@@ -95,14 +96,19 @@ class Train:
                                     winner))
         return extend_data
 
-    def collect_selfplay_data(self):
+    def collect_selfplay_data(self, selfplay_per_iter):
         """collect self-play data for training"""
-        winner, play_data, state_his = self.game.start_self_play(self.mcts_player, is_shown=False)
-        play_data = list(play_data)[:]
-        # self.episode_len = len(play_data)
-        # augment the data
-        play_data = self.get_equi_data(play_data)
-        return play_data, state_his
+        play_data_list = []
+        state_his_list = []
+        for i in range(selfplay_per_iter):
+            winner, play_data, state_his = self.game.start_self_play(self.mcts_player, is_shown=False)
+            play_data = list(play_data)[:]
+            # self.episode_len = len(play_data)
+            # augment the data
+            play_data = self.get_equi_data(play_data)
+            play_data_list.append(play_data)
+            state_his_list.append(state_his)
+        return play_data_list, state_his_list
 
     def policy_update(self):
         """update the policy-value net"""
@@ -208,13 +214,14 @@ class Train:
         try:
             model_checkpoint = cbks.ModelCheckpoint()
             # losses = []
-            with mpi4py.futures.MPIPoolExecutor(max_workers=self.num_train_nodes) as executor:
+            with mpi4py.futures.MPIPoolExecutor() as executor:
                 for i in range(self.start_batch, self.game_batch_num):
-                    futures = [executor.submit(self.collect_selfplay_data) for _ in range(0, self.selfplay_per_iter)]
+                    futures = [executor.submit(self.collect_selfplay_data, self.selfplay_per_iter)
+                               for _ in range(0, self.num_processes)]
                     for k, f in enumerate(futures):
-                        play_data, state_his = f.result()
-                        self.data_buffer.extend(play_data)
-                        self.selfplay_state_buffer.append(state_his)
+                        play_data_list, state_his_list = f.result()
+                        self.data_buffer.extend(play_data_list)
+                        self.selfplay_state_buffer.extend(state_his_list)
 
                     # self.collect_selfplay_data(self.selfplay_per_iter)
                     # print("batch i:{}, episode_len:{}".format(
@@ -247,6 +254,5 @@ class Train:
 
 
 if __name__ == '__main__':
-    # train = Train(best_policy_path)
-    train = Train()
+    train = Train(sys.argv[1])
     train.run()

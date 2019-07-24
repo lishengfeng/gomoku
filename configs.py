@@ -23,7 +23,7 @@ class MCTSConfig:
     the prior more.
     temp: temperature parameter in (0, 1] controls the level of exploration
     """
-    num_simulations = 1600
+    num_simulations = 1200
     c_put = 5
     # with the default temp=1e-3, it is almost equivalent
     # to choosing the move with the highest prob
@@ -33,7 +33,7 @@ class MCTSConfig:
 class TrainConfig:
     game_batch_num = 5000
     # selfplay times per iteration
-    selfplay_per_iter = 10
+    selfplay_per_iter = 1
     # mini-batch size for training
     batch_size = 200
     # num of train_steps for each update
@@ -44,8 +44,6 @@ class TrainConfig:
     kl_targ = 0.025
     check_freq = 100
     evaluate_match_num = 50
-    # parallel training for selfplay
-    num_train_nodes = 20
 
 
 class FilepathConfig:
