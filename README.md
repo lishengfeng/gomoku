@@ -72,6 +72,12 @@ prepend-path PATH $MY_KERAS_HOME/bin
 
 module load keras-key
 
+7. Install mpi4py 
+
+conda install -c conda-forge mpi4py
+
+> Tips: "pip install mpi4py" is not working.
+
 #Issues
 
 ## numpy no longer available (Due to work volume Purge)
