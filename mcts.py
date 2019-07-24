@@ -3,7 +3,7 @@ import numpy as np
 import copy
 from configs import MCTSConfig
 import concurrent.futures
-from multiprocessing import Lock
+import multiprocessing
 
 
 def softmax(x):
@@ -32,7 +32,7 @@ class TreeNode:
         # Prior
         self._P = prior_p
         self.virtual_loss = 0
-        self._lock = Lock()
+        self._lock = multiprocessing.Manager().Lock()
 
     def expand(self, action_priors):
         """Expand tree by creating new children.
