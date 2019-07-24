@@ -23,7 +23,7 @@ Colour 1
 * $ unset PYTHONUSERBASE
 * $ bash Miniconda3-latest-Linux-x86_64.sh
 * $ conda update conda
-* $ conda install python=3.7
+* $ conda install python=3.7.3
 
 > Always make sure you have the correct python in the conda environment
 
@@ -46,7 +46,7 @@ pkgs_dirs:
 
 3. Create own environment
 
-* $ conda create --name rl python=3.6.8
+* $ conda create --name rl python=3.7.3
 
 4. Install keras from conda
 
