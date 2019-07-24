@@ -2,6 +2,8 @@
 import numpy as np
 import copy
 from configs import MCTSConfig
+import concurrent.futures
+from multiprocessing import Lock
 
 
 def softmax(x):
@@ -21,10 +23,16 @@ class TreeNode:
         self._parent = parent
         self.children = {}  # a map from action to TreeNode
         self.n_visits = 0
+        # Accumulated scores of win 1/tie 0/lose -1
         self._W = 0
+        # Score based on _W and visit times _W/n_visits
         self._Q = 0
+        # This node's prior adjusted for its visit count
         self._u = 0
+        # Prior
         self._P = prior_p
+        self.virtual_loss = 0
+        self._lock = Lock()
 
     def expand(self, action_priors):
         """Expand tree by creating new children.
@@ -40,14 +48,21 @@ class TreeNode:
         plus bonus u(P).
         Return: A tuple of (action, next_node)
         """
-        return max(self.children.items(),
-                   key=lambda act_node: act_node[1].get_value(c_puct))
+        with self._lock:
+            action, node = max(self.children.items(),
+                               key=lambda act_node: act_node[1].get_value(c_puct))
+            # Only when the node was selected, the virtual_loss will add one
+            node.virtual_loss += 1
+        return action, node
 
     def update(self, leaf_value):
         """Update node values from leaf evaluation.
         leaf_value: the value of subtree evaluation from the current player's
             perspective.
         """
+        # Remove virtual loss
+        with self._lock:
+            self.virtual_loss -= 1
         # Count visit.
         self.n_visits += 1
         self._W += leaf_value
@@ -72,7 +87,10 @@ class TreeNode:
         """
         self._u = (c_puct * self._P *
                    np.sqrt(self._parent.n_visits) / (1 + self.n_visits))
-        return self._Q + self._u
+        # self._Q = self._W / self.n_visits
+        # Temporarily adds a game loss to any node that is traversed.
+        # when next thread visits the same node, it will be discouraged from following the same path
+        return (self._Q * self.n_visits - self.virtual_loss) / self.n_visits + self._u
 
     def is_leaf(self):
         """Check if leaf node (i.e. no nodes below this have been expanded)."""
@@ -96,9 +114,11 @@ class MCTS:
         self._policy = policy_value_fn
         self._mcts_config = MCTSConfig()
         self._c_puct = self._mcts_config.c_put
-        self._n_playout = self._mcts_config.n_playout
+        self._num_simulations = self._mcts_config.num_simulations
+        self._num_mcts_threads = self._mcts_config.num_mcts_threads
+        self.thread_pool_executor = concurrent.futures.ThreadPoolExecutor(max_workers=self._num_mcts_threads)
 
-    def _playout(self, state):
+    def _simulate(self, state):
         """Run a single playout from the root to the leaf, getting a value at
         the leaf and propagating it back through its parents.
         State is modified in-place, so a copy must be provided.
@@ -141,9 +161,14 @@ class MCTS:
         their corresponding probabilities.
         state: the current game state
         """
-        for n in range(self._n_playout):
+        futures = []
+        for n in range(self._num_simulations):
             state_copy = copy.deepcopy(state)
-            self._playout(state_copy)
+            futures.append(self.thread_pool_executor.submit(self._simulate, state_copy))
+            # self._simulate(state_copy)
+
+        for future in futures:
+            future.result()
 
         # calc the move probabilities based on visit counts at the root node
         act_visits = [(act, node.n_visits)

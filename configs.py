@@ -23,11 +23,13 @@ class MCTSConfig:
     the prior more.
     temp: temperature parameter in (0, 1] controls the level of exploration
     """
-    n_playout = 1200
+    num_simulations = 1600
     c_put = 5
     # with the default temp=1e-3, it is almost equivalent
     # to choosing the move with the highest prob
     temperature = 1e-3
+    # mcts thread nums
+    num_mcts_threads = 4
 
 
 class TrainConfig:
