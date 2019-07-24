@@ -28,8 +28,6 @@ class MCTSConfig:
     # with the default temp=1e-3, it is almost equivalent
     # to choosing the move with the highest prob
     temperature = 1e-3
-    # mcts thread nums
-    num_mcts_threads = 4
 
 
 class TrainConfig:
