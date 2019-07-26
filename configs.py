@@ -48,7 +48,7 @@ class TrainConfig:
 
 class FilepathConfig:
 
-    def __init__(self):
+    def __init__(self, is_mpi):
         self.train_config = TrainConfig()
         self.board_config = BoardConfig()
         self.model_config = ModelConfig()
@@ -59,7 +59,10 @@ class FilepathConfig:
                 self.model_config.cnn_filter_size, self.model_config.res_layer_num,
                 self.train_config.game_batch_num)
         folder = './saved'
-        self.filepath = '{}/{}'.format(folder, suffix)
+        if is_mpi:
+            self.filepath = '{}/{}-mpi'.format(folder, suffix)
+        else:
+            self.filepath = '{}/{}'.format(folder, suffix)
 
 
 
