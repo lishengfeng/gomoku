@@ -1,10 +1,8 @@
 import os.path
 import pickle
 import random
-import sys
 from collections import defaultdict, deque
 
-import mpi4py.futures
 import numpy as np
 from keras.models import clone_model
 
@@ -17,7 +15,7 @@ from model_gomoku import GomokuModel
 
 
 class Train:
-    def __init__(self, num_processes):
+    def __init__(self):
         self.filepath_config = FilepathConfig()
         self.config = TrainConfig()
         self.board_config = BoardConfig()
@@ -44,7 +42,6 @@ class Train:
         self.mcts_player = MCTSPlayer(self.model_gomoku.policy_value_fn,
                                       is_selfplay=True)
         self.previous_model = None
-        self.num_processes = num_processes
 
         filepath = self.filepath_config.filepath
 
@@ -98,17 +95,14 @@ class Train:
 
     def collect_selfplay_data(self, selfplay_per_iter):
         """collect self-play data for training"""
-        play_data_list = []
-        state_his_list = []
         for i in range(selfplay_per_iter):
             winner, play_data, state_his = self.game.start_self_play(self.mcts_player, is_shown=False)
             play_data = list(play_data)[:]
             # self.episode_len = len(play_data)
             # augment the data
             play_data = self.get_equi_data(play_data)
-            play_data_list.append(play_data)
-            state_his_list.append(state_his)
-        return play_data_list, state_his_list
+            self.data_buffer.extend(play_data)
+            self.selfplay_state_buffer.append(state_his)
 
     def policy_update(self):
         """update the policy-value net"""
@@ -211,48 +205,36 @@ class Train:
     def run(self):
         """ Start training
         """
-        try:
-            model_checkpoint = cbks.ModelCheckpoint()
-            # losses = []
-            with mpi4py.futures.MPIPoolExecutor() as executor:
-                for i in range(self.start_batch, self.game_batch_num):
-                    futures = [executor.submit(self.collect_selfplay_data, self.selfplay_per_iter)
-                               for _ in range(0, self.num_processes)]
-                    for k, f in enumerate(futures):
-                        play_data_list, state_his_list = f.result()
-                        self.data_buffer.extend(play_data_list)
-                        self.selfplay_state_buffer.extend(state_his_list)
-
-                    # self.collect_selfplay_data(self.selfplay_per_iter)
-                    # print("batch i:{}, episode_len:{}".format(
-                    #         i + 1, self.episode_len))
-                    if len(self.data_buffer) > self.batch_size:
-                        self.policy_update()
-                        self.save_session_state(i + 1)
-                        self.save_training_history()
-                        print('current batch: ' + str(i))
-                        # loss, entropy = self.policy_update()
-                        # losses.append(loss)
-                    # check the performance of the current model,
-                    # and save the model params
-                    if (i + 1) % self.check_freq == 0:
-                        # print("current self-play batch: {}".format(i + 1))
-                        win_ratio = self.policy_evaluate()
-                        # history = {'loss': losses}
-                        # save_model_history(his_path, history)
-                        if win_ratio > 0.5 or self.previous_model is None:
-                            model = self.model_gomoku.model
-                            self.previous_model = clone_model(model)
-                            self.previous_model.set_weights(model.get_weights())
-                            # print("New best policy!!!!!!!!")
-                            # update the best_policy
-                            self.model_callback(i, [model_checkpoint])
-                            self.save_states()
-                            # self.model_gomoku.save_model(best_policy_path)
-        except KeyboardInterrupt:
-            print('\n\rquit')
+        model_checkpoint = cbks.ModelCheckpoint()
+        for i in range(self.start_batch, self.game_batch_num):
+            self.collect_selfplay_data(self.selfplay_per_iter)
+            # print("batch i:{}, episode_len:{}".format(
+            #         i + 1, self.episode_len))
+            if len(self.data_buffer) > self.batch_size:
+                self.policy_update()
+                self.save_session_state(i + 1)
+                self.save_training_history()
+                print('current batch: ' + str(i))
+                # loss, entropy = self.policy_update()
+                # losses.append(loss)
+            # check the performance of the current model,
+            # and save the model params
+            if (i + 1) % self.check_freq == 0:
+                # print("current self-play batch: {}".format(i + 1))
+                win_ratio = self.policy_evaluate()
+                # history = {'loss': losses}
+                # save_model_history(his_path, history)
+                if win_ratio > 0.5 or self.previous_model is None:
+                    model = self.model_gomoku.model
+                    self.previous_model = clone_model(model)
+                    self.previous_model.set_weights(model.get_weights())
+                    # print("New best policy!!!!!!!!")
+                    # update the best_policy
+                    self.model_callback(i, [model_checkpoint])
+                    self.save_states()
+                    # self.model_gomoku.save_model(best_policy_path)
 
 
 if __name__ == '__main__':
-    train = Train(sys.argv[1])
+    train = Train()
     train.run()
