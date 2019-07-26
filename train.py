@@ -12,6 +12,7 @@ from configs import TrainConfig, BoardConfig, FilepathConfig
 from game import Game
 from mcts import MCTSPlayer
 from model_gomoku import GomokuModel
+import time
 
 
 class Train:
@@ -69,6 +70,17 @@ class Train:
             self.start_batch = session_state['batch']
         else:
             self.start_batch = 0
+
+        benchmark_file = '{}.benchmark'.format(filepath)
+        if os.path.isfile(benchmark_file):
+            benchmark_state = pickle.load(open(benchmark_file, 'rb'))
+            self.time_selfplay = benchmark_state['selfplay']
+            self.time_model_fit = benchmark_state['model_fit']
+            self.time_evaluate = benchmark_state['evaluate']
+        else:
+            self.time_selfplay = 0
+            self.time_model_fit = 0
+            self.time_evaluate = 0
 
     def get_equi_data(self, play_data):
         """augment the data set by rotation and flipping
@@ -190,21 +202,35 @@ class Train:
         session_state = {'batch': batch}
         pickle.dump(session_state, open(filepath, 'wb'), protocol=2)
 
+    def save_benchmark_state(self):
+        filepath = '{}.benchmark'.format(self.filepath_config.filepath)
+        benchmark_state = {'selfplay': self.time_selfplay, 'model_fit': self.time_model_fit,
+                           'evaluate': self.time_evaluate}
+        pickle.dump(benchmark_state, open(filepath, 'wb'), protocol=2)
+        pass
+
     def run(self):
         """ Start training
         """
         model_checkpoint = cbks.ModelCheckpoint()
         for i in range(self.start_batch, self.game_batch_num):
+            selfplay_start_time = time.time()
             self.collect_selfplay_data(self.selfplay_per_iter)
+            self.time_selfplay += time.time() - selfplay_start_time
+
             if len(self.data_buffer) > self.batch_size:
+                model_fit_start_time = time.time()
                 self.policy_update()
+                self.time_model_fit += time.time() - model_fit_start_time
                 self.save_session_state(i + 1)
                 self.save_training_history()
                 print('current batch: ' + str(i))
             # check the performance of the current model,
             # and save the model params
             if (i + 1) % self.check_freq == 0:
+                evaluate_start_time = time.time()
                 win_ratio = self.policy_evaluate()
+                self.time_evaluate += time.time() - evaluate_start_time
                 if win_ratio > 0.5 or self.previous_model is None:
                     model = self.model_gomoku.model
                     self.previous_model = clone_model(model)
@@ -212,6 +238,7 @@ class Train:
                     # update the best_policy
                     self.model_callback(i, [model_checkpoint])
                     self.save_states()
+            self.save_benchmark_state()
 
 
 if __name__ == '__main__':
