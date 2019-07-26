@@ -141,18 +141,6 @@ class Train:
         his_record = {'kl': kl, 'lr_multiplier': self.lr_multiplier, 'loss': loss, 'entropy': entropy,
                       'explained_var_old': explained_var_old, 'explained_var_new': explained_var_new}
         self.history_buffer.append(his_record)
-        # print(("kl:{:.5f},"
-        #        "lr_multiplier:{:.3f},"
-        #        "loss:{},"
-        #        "entropy:{},"
-        #        "explained_var_old:{:.3f},"
-        #        "explained_var_new:{:.3f}"
-        #        ).format(kl,
-        #                 self.lr_multiplier,
-        #                 loss,
-        #                 entropy,
-        #                 explained_var_old,
-        #                 explained_var_new))
         return loss, entropy
 
     def policy_evaluate(self):
@@ -208,31 +196,22 @@ class Train:
         model_checkpoint = cbks.ModelCheckpoint()
         for i in range(self.start_batch, self.game_batch_num):
             self.collect_selfplay_data(self.selfplay_per_iter)
-            # print("batch i:{}, episode_len:{}".format(
-            #         i + 1, self.episode_len))
             if len(self.data_buffer) > self.batch_size:
                 self.policy_update()
                 self.save_session_state(i + 1)
                 self.save_training_history()
                 print('current batch: ' + str(i))
-                # loss, entropy = self.policy_update()
-                # losses.append(loss)
             # check the performance of the current model,
             # and save the model params
             if (i + 1) % self.check_freq == 0:
-                # print("current self-play batch: {}".format(i + 1))
                 win_ratio = self.policy_evaluate()
-                # history = {'loss': losses}
-                # save_model_history(his_path, history)
                 if win_ratio > 0.5 or self.previous_model is None:
                     model = self.model_gomoku.model
                     self.previous_model = clone_model(model)
                     self.previous_model.set_weights(model.get_weights())
-                    # print("New best policy!!!!!!!!")
                     # update the best_policy
                     self.model_callback(i, [model_checkpoint])
                     self.save_states()
-                    # self.model_gomoku.save_model(best_policy_path)
 
 
 if __name__ == '__main__':
