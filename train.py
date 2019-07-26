@@ -3,6 +3,7 @@ import pickle
 import random
 from collections import defaultdict, deque
 
+import sys
 import numpy as np
 from keras.models import clone_model
 
@@ -16,7 +17,13 @@ import time
 
 
 class Train:
-    def __init__(self):
+    def __init__(self, mpi=False):
+        if mpi:
+            global MPI
+            mpi4py = __import__('mpi4py.MPI', globals(), locals())
+            MPI = mpi4py.MPI
+        self.mpi = mpi
+
         self.filepath_config = FilepathConfig()
         self.config = TrainConfig()
         self.board_config = BoardConfig()
@@ -70,6 +77,7 @@ class Train:
             self.start_batch = session_state['batch']
         else:
             self.start_batch = 0
+        self.remaining_game_batch = self.game_batch_num - self.start_batch
 
         benchmark_file = '{}.benchmark'.format(filepath)
         if os.path.isfile(benchmark_file):
@@ -105,16 +113,19 @@ class Train:
                                     winner))
         return extend_data
 
-    def collect_selfplay_data(self, selfplay_per_iter):
+    def collect_selfplay_data(self, selfplay_per_iter=1):
         """collect self-play data for training"""
+        data_buffer = deque()
+        selfplay_state_buffer = deque()
         for i in range(selfplay_per_iter):
-            winner, play_data, state_his = self.game.start_self_play(self.mcts_player, is_shown=False)
+            winner, play_data, state_his = self.game.start_self_play(self.mcts_player, is_shown=False, is_recorded=True)
             play_data = list(play_data)[:]
             # self.episode_len = len(play_data)
             # augment the data
             play_data = self.get_equi_data(play_data)
-            self.data_buffer.extend(play_data)
-            self.selfplay_state_buffer.append(state_his)
+            data_buffer.extend(play_data)
+            selfplay_state_buffer.append(state_his)
+        return data_buffer, selfplay_state_buffer
 
     def policy_update(self):
         """update the policy-value net"""
@@ -207,38 +218,97 @@ class Train:
         benchmark_state = {'selfplay': self.time_selfplay, 'model_fit': self.time_model_fit,
                            'evaluate': self.time_evaluate}
         pickle.dump(benchmark_state, open(filepath, 'wb'), protocol=2)
-        pass
+
+    def sync_model(self):
+        comm = MPI.COMM_WORLD
+        if comm.rank == 0:
+            if self.remaining_game_batch > 0:
+                weights = self.model_gomoku.model.get_weights()
+            else:
+                weights = None
+        else:
+            weights = None
+        weights = comm.bcast(weights, root=0)
+        if weights is None:
+            print("Process %d exit." % comm.rank)
+            sys.exit()
+        if comm.rank != 0:
+            self.model_gomoku.model.set_weights(weights)
 
     def run(self):
         """ Start training
         """
         model_checkpoint = cbks.ModelCheckpoint()
-        for i in range(self.start_batch, self.game_batch_num):
-            selfplay_start_time = time.time()
-            self.collect_selfplay_data(self.selfplay_per_iter)
-            self.time_selfplay += time.time() - selfplay_start_time
 
-            if len(self.data_buffer) > self.batch_size:
-                model_fit_start_time = time.time()
-                self.policy_update()
-                self.time_model_fit += time.time() - model_fit_start_time
-                self.save_session_state(i + 1)
-                self.save_training_history()
-                print('current batch: ' + str(i))
-            # check the performance of the current model,
-            # and save the model params
-            if (i + 1) % self.check_freq == 0:
-                evaluate_start_time = time.time()
-                win_ratio = self.policy_evaluate()
-                self.time_evaluate += time.time() - evaluate_start_time
-                if win_ratio > 0.5 or self.previous_model is None:
-                    model = self.model_gomoku.model
-                    self.previous_model = clone_model(model)
-                    self.previous_model.set_weights(model.get_weights())
-                    # update the best_policy
-                    self.model_callback(i, [model_checkpoint])
-                    self.save_states()
-            self.save_benchmark_state()
+        if self.mpi:
+            comm = MPI.COMM_WORLD
+            while True:
+                self.sync_model()
+                selfplay_start_time = 0
+                if comm.rank == 0:
+                    selfplay_start_time = time.time()
+                # All processes including root starts to selfplay
+                data_buffer, selfplay_state_buffer = self.collect_selfplay_data(self.selfplay_per_iter)
+                selfplay_data = {'data_buffer': data_buffer, 'selfplay_state_buffer': selfplay_state_buffer}
+                selfplay_data_list = comm.gather(selfplay_data, root=0)
+                if comm.rank == 0:
+                    self.time_selfplay += time.time() - selfplay_start_time
+                    self.remaining_game_batch -= len(selfplay_data_list)
+                    cur_i = self.game_batch_num - self.remaining_game_batch
+                    for sd in selfplay_data_list:
+                        self.data_buffer.extend(sd['data_buffer'])
+                        self.selfplay_state_buffer.extend(sd['selfplay_state_buffer'])
+                    if len(self.data_buffer) > self.batch_size:
+                        model_fit_start_time = time.time()
+                        self.policy_update()
+                        self.time_model_fit += time.time() - model_fit_start_time
+                        self.save_session_state(cur_i)
+                        self.save_training_history()
+                        print('current batch: ' + str(cur_i))
+                    # check the performance of the current model,
+                    # and save the model params
+                    if cur_i % self.check_freq == 0:
+                        evaluate_start_time = time.time()
+                        win_ratio = self.policy_evaluate()
+                        self.time_evaluate += time.time() - evaluate_start_time
+                        if win_ratio > 0.5 or self.previous_model is None:
+                            model = self.model_gomoku.model
+                            self.previous_model = clone_model(model)
+                            self.previous_model.set_weights(model.get_weights())
+                            # update the best_policy
+                            self.model_callback(cur_i, [model_checkpoint])
+                            self.save_states()
+                    self.save_benchmark_state()
+                comm.Barrier()
+        else:
+            for i in range(self.start_batch, self.game_batch_num):
+                selfplay_start_time = time.time()
+                data_buffer, selfplay_state_buffer = self.collect_selfplay_data(self.selfplay_per_iter)
+                self.data_buffer.extend(data_buffer)
+                self.selfplay_state_buffer.extend(selfplay_state_buffer)
+                self.time_selfplay += time.time() - selfplay_start_time
+
+                if len(self.data_buffer) > self.batch_size:
+                    model_fit_start_time = time.time()
+                    self.policy_update()
+                    self.time_model_fit += time.time() - model_fit_start_time
+                    self.save_session_state(i + 1)
+                    self.save_training_history()
+                    print('current batch: ' + str(i))
+                # check the performance of the current model,
+                # and save the model params
+                if (i + 1) % self.check_freq == 0:
+                    evaluate_start_time = time.time()
+                    win_ratio = self.policy_evaluate()
+                    self.time_evaluate += time.time() - evaluate_start_time
+                    if win_ratio > 0.5 or self.previous_model is None:
+                        model = self.model_gomoku.model
+                        self.previous_model = clone_model(model)
+                        self.previous_model.set_weights(model.get_weights())
+                        # update the best_policy
+                        self.model_callback(i, [model_checkpoint])
+                        self.save_states()
+                self.save_benchmark_state()
 
 
 if __name__ == '__main__':

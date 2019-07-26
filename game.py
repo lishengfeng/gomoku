@@ -66,7 +66,7 @@ class Game:
                         print("Game end. Tie")
                 return winner, self.state_history
 
-    def start_self_play(self, player, is_shown=False):
+    def start_self_play(self, player, is_shown=False, is_recorded=False):
         """ start a self-play game using a MCTS player, reuse the search tree,
         and store the self-play data: (state, mcts_probs, z) for training
         """
@@ -82,9 +82,10 @@ class Game:
             current_players.append(self.board.current_player)
             # perform a move
             self.board.do_move(move)
-            if is_shown:
+            if is_recorded:
                 self.save_state()
-                # self.graphic()
+            if is_shown:
+                self.graphic()
             end, winner = self.board.game_end()
             if end:
                 # winner from the perspective of the current player of each
