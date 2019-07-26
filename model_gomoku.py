@@ -16,10 +16,10 @@ import configs
 
 
 class GomokuModel:
-    def __init__(self, model=None):
+    def __init__(self, is_mpi, model=None):
         self.model_config = configs.ModelConfig()
         self.board_config = configs.BoardConfig()
-        self.filepath_config = configs.FilepathConfig()
+        self.filepath_config = configs.FilepathConfig(is_mpi)
         if model:
             self.model = model
         else:

@@ -17,14 +17,14 @@ import time
 
 
 class Train:
-    def __init__(self, mpi=False):
-        if mpi:
+    def __init__(self, is_mpi=False):
+        if is_mpi:
             global MPI
             mpi4py = __import__('mpi4py.MPI', globals(), locals())
             MPI = mpi4py.MPI
-        self.mpi = mpi
+        self.is_mpi = is_mpi
 
-        self.filepath_config = FilepathConfig()
+        self.filepath_config = FilepathConfig(is_mpi)
         self.config = TrainConfig()
         self.board_config = BoardConfig()
         self.board_width = self.board_config.width
@@ -46,7 +46,7 @@ class Train:
         self.game = Game(self.board)
         # number of states when one episode ends (winner appears)
         self.episode_len = 0
-        self.model_gomoku = GomokuModel()
+        self.model_gomoku = GomokuModel(is_mpi)
         self.mcts_player = MCTSPlayer(self.model_gomoku.policy_value_fn,
                                       is_selfplay=True)
         self.previous_model = None
@@ -174,7 +174,7 @@ class Train:
         n_games = self.config.evaluate_match_num
         win_ratio = 1.0
         if self.previous_model is not None:
-            previous_model = GomokuModel(model=self.previous_model)
+            previous_model = GomokuModel(model=self.previous_model, is_mpi=self.is_mpi)
             previous_player = MCTSPlayer(previous_model.policy_value_fn)
             current_mcts_player = MCTSPlayer(self.model_gomoku.policy_value_fn)
             win_cnt = defaultdict(int)
@@ -238,9 +238,9 @@ class Train:
     def run(self):
         """ Start training
         """
-        model_checkpoint = cbks.ModelCheckpoint()
+        model_checkpoint = cbks.ModelCheckpoint(is_mpi=self.is_mpi)
 
-        if self.mpi:
+        if self.is_mpi:
             comm = MPI.COMM_WORLD
             while True:
                 self.sync_model()

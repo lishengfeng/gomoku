@@ -46,8 +46,8 @@ class Callback(object):
         batch: The current batch
     """
 
-    def __init__(self):
-        self.filepath_config = FilepathConfig()
+    def __init__(self, is_mpi):
+        self.filepath_config = FilepathConfig(is_mpi)
         self.gomoku_model = None
         pass
 
@@ -67,8 +67,8 @@ class ModelCheckpoint(Callback):
         filepath: string, path to save the model file.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, is_mpi):
+        super().__init__(is_mpi)
         self.filepath = '{}.model'.format(self.filepath_config.filepath)
 
     def on_module_updated(self, batch):
