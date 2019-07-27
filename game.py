@@ -8,7 +8,7 @@ class Game:
         self.state_history = deque()
 
     def save_state(self):
-        self.state_history.append(self.board.states.copy())
+        self.state_history.append(next(reversed(self.board.states)))
 
     def graphic(self):
         """Draw the board and show game info"""
