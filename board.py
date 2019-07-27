@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import numpy as np
 
 import configs
@@ -18,7 +20,7 @@ class Board:
                     "less than {}".format(n_in_row))
         self.width = width
         self.height = height
-        self.states = {}
+        self.states = OrderedDict()
         self.n_in_row = n_in_row
         # Two players, first player and second player
         self.players = [1, 2]
@@ -39,7 +41,7 @@ class Board:
         self.available_positions = list(range(width * height))
         his_size = bc.his_size
         self.last_n_move = [-1] * (his_size * 2 + 1)
-        self.states = {}
+        self.states = OrderedDict()
 
     def position_to_place(self, move):
         """
