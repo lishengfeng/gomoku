@@ -10,6 +10,10 @@ class Game:
     def save_state(self):
         self.state_history.append(next(reversed(self.board.states)))
 
+    def save_winner_state(self, winner):
+        # last item is winner
+        self.state_history.append(winner)
+
     def graphic(self):
         """Draw the board and show game info"""
         board = self.board
@@ -58,6 +62,8 @@ class Game:
                 self.graphic()
             end, winner = self.board.game_end()
             if end:
+                if is_recorded:
+                    self.save_winner_state(winner)
                 if is_shown:
                     if winner != -1:
                         print("Game end. Winner is",
@@ -96,6 +102,8 @@ class Game:
                     winners_z[np.array(current_players) != winner] = -1.0
                 # reset MCTS root node
                 player.reset_player()
+                if is_recorded:
+                    self.save_winner_state(winner)
                 if is_shown:
                     if winner != -1:
                         pass
