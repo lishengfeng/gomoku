@@ -82,7 +82,42 @@ module load keras-key
 
 conda install -c conda-forge mpi4py
 
-> Tips: "pip install mpi4py" is not working.
+> Tips: "pip install mpi4py" is not working. Use "mpiexec --help lunch" to check arguments
+
+8. Submit job
+
+```
+#!/bin/bash
+#PBS -q workq
+#PBS -l nodes=5:ppn=20
+#PBS -l walltime=72:00:00
+#PBS -N gomoku-mpi
+#PBS -o /work/sli49/result-mpi.out
+#PBS -j oe
+#PBS -A loni_dnn19_rl
+#PBS -m e
+#PBS -M sli49@lsu.edu
+
+date
+
+export HOME_DIR=/home/sli49/
+export WORK_DIR=/work/sli49/
+export PBS_O_WORKDIR=/work/sli49/gomoku/
+export PBS_O_HOME=/home/sli49/
+export OMP_NUM_THREADS=4
+
+mkdir -p $WORK_DIR
+
+cd $PBS_O_WORKDIR
+
+node=5
+ppn=20
+
+num_process=$(($node * $ppn))
+
+module load keras-key
+mpiexec -np $num_process -hostfile $PBS_NODEFILE -v python mpi_train.py
+```
 
 #Issues
 
