@@ -23,9 +23,9 @@ Colour 1
 * $ unset PYTHONUSERBASE
 * $ bash Miniconda3-latest-Linux-x86_64.sh
 * $ conda update conda
-* $ conda install python=3.7.3
+* $ conda install python=3.6
 
-> Always make sure you have the correct python in the conda environment
+> Always make sure you have the correct python in the conda environment. Keras is compatible with: Python 2.7-3.6.
 
 ```
 If you'd prefer that conda's base environment not be activated on startup, 
@@ -46,11 +46,17 @@ pkgs_dirs:
 
 3. Create own environment
 
-* $ conda create --name rl python=3.7.3
+$ conda create --name rl python=3.6
+$ conda activate rl
 
-4. Install keras from conda
+> Keras is compatible with: Python 2.7-3.6. 
 
-$ conda install -c anaconda keras
+4. [Install keras from conda](https://github.com/keras-team/keras)
+
+Install tensorflow first
+$ pip install --upgrade pip
+$ pip install tensorflow==2.0.0-rc1
+$ pip install keras
 
 > /work/sli49/rl-env/rl/bin became bigger. Install keras from conda-forge is not working
 
@@ -84,9 +90,10 @@ conda install -c conda-forge mpi4py
 
 Remove the rl environment and then recreate it to retrieve the packages
 
-
 $ conda remove --name myenv --all
 Repeat [Create Keras Environment](#create-keras-environment) step 3 to 5
 
+## If Using global module python/3.5.2-anaconda-tensorflow ImportError: libcudart.so.7.5: cannot open shared object file
+$ module load cuda/7.5
 
 
