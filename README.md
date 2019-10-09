@@ -23,9 +23,9 @@ Colour 1
 * $ unset PYTHONUSERBASE
 * $ bash Miniconda3-latest-Linux-x86_64.sh
 * $ conda update conda
-* $ conda install python=3.6
+* $ conda install python=3.7
 
-> Always make sure you have the correct python in the conda environment. Keras is compatible with: Python 2.7-3.6.
+> Always make sure you have the correct python in the conda environment. Keras is compatible with: Python 2.7-3.6. But mpi4py requires 3.7
 
 ```
 If you'd prefer that conda's base environment not be activated on startup, 
@@ -46,10 +46,10 @@ pkgs_dirs:
 
 3. Create own environment
 
-$ conda create --name rl python=3.6
+$ conda create --name rl python=3.7
 $ conda activate rl
 
-> Keras is compatible with: Python 2.7-3.6. 
+> Keras is compatible with: Python 2.7-3.6 but mpi4py requires 3.7. 
 
 4. [Install keras from conda](https://github.com/keras-team/keras)
 
@@ -80,9 +80,9 @@ module load keras-key
 
 7. Install mpi4py 
 
-conda install -c conda-forge mpi4py
+conda install -c conda-forge mpi4py==3.0.1=py37hf046da1_0
 
-> Tips: "pip install mpi4py" is not working. Use "mpiexec --help lunch" to check arguments
+> Tips: "pip install mpi4py" is not working. To use MPI, you need make sure all the nodes have valid library.
 
 8. Submit job
 
@@ -102,9 +102,8 @@ date
 
 export HOME_DIR=/home/sli49/
 export WORK_DIR=/work/sli49/
-export PBS_O_WORKDIR=/work/sli49/gomoku/
+export PBS_O_WORKDIR=/work/sli49/gomoku
 export PBS_O_HOME=/home/sli49/
-export OMP_NUM_THREADS=4
 
 mkdir -p $WORK_DIR
 
@@ -115,8 +114,10 @@ ppn=20
 
 num_process=$(($node * $ppn))
 
-module load keras-key
-mpiexec -np $num_process -hostfile $PBS_NODEFILE -v python mpi_train.py
+module unload mvapich2/2.0/INTEL-14.0.2
+module load INTEL/14.0.2
+module load openmpi/1.8.1/INTEL-14.0.2
+mpirun --prefix /usr/local/packages/openmpi/1.8.1/INTEL-14.0.2 -np $num_process -machinefile $PBS_NODEFILE python mpi_train.py
 ```
 
 #Issues
@@ -131,4 +132,39 @@ Repeat [Create Keras Environment](#create-keras-environment) step 3 to 5
 ## If Using global module python/3.5.2-anaconda-tensorflow ImportError: libcudart.so.7.5: cannot open shared object file
 $ module load cuda/7.5
 
+## MPI not working fix
+
+### mpi relies on the backend Mavpich or OPENMPI.
+Using the existing models can guarantee they are working.
+mpirun --prefix /usr/local/packages/openmpi/1.8.1/INTEL-14.0.2 -np 40 -machinefile $PBS_NODEFILE python mpi_train.py
+With the below modules
+```
+(/work/sli49/rl-env/rl2) [sli49@qb110 gomoku_test]$ module list
+Currently Loaded Modulefiles:
+1) intel/14.0.2
+2) INTEL/14.0.2
+3) openmpi/1.8.1/INTEL-14.0.2
+```
+
+### All nodes should use the same environment
+Add below to .bash_profile
+```
+# .bash_profile
+
+# Get the aliases and functions
+if [ -f ~/.bashrc ]; then
+        . ~/.bashrc
+fi
+
+# User specific environment and startup programs
+
+PATH=$PATH:$HOME/bin:$HOME/packages/python/bin
+
+export PATH
+#export PYTHONPATH=$HOME/packages/python/lib/python3.5.2-anaconda/site-packages:$PYTHONPATH
+#export PYTHONUSERBASE=$HOME/packages/python
+export MODULEPATH=$HOME/my_module:$MODULEPATH
+export PATH
+export PYTHONPATH=/work/sli49/rl-env/rl2/lib/python3.7/site-packages
+```
 
