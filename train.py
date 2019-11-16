@@ -223,6 +223,7 @@ class Train:
         comm = MPI.COMM_WORLD
         if comm.rank == 0:
             if self.remaining_game_batch > 0:
+                # TODO mcts need to be synchronized as well
                 weights = self.model_gomoku.model.get_weights()
             else:
                 weights = None
@@ -259,6 +260,7 @@ class Train:
                     for sd in selfplay_data_list:
                         self.data_buffer.extend(sd['data_buffer'])
                         self.selfplay_state_buffer.extend(sd['selfplay_state_buffer'])
+                    # TODO self.data_buffer should be reset after being used
                     if len(self.data_buffer) > self.batch_size:
                         model_fit_start_time = time.time()
                         self.policy_update()
@@ -282,6 +284,7 @@ class Train:
                             self.model_callback(cur_i, [model_checkpoint])
                             self.save_states()
                     self.save_benchmark_state()
+                # TODO Instead of barrier, we should allow passing when batches is bigger to be trained
                 comm.Barrier()
         else:
             for i in range(self.start_batch, self.game_batch_num):
