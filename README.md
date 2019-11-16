@@ -1,15 +1,20 @@
 # gomoku
 
+1. train.py is the training entry.
+2. mcts.py is everything about Monte Carlo Tree Search.
+3. model_gomoku.py is everything about the neural network.
+4. board.py is everything about the game state.
+5. callbacks.py is used to add some callbacks to model training.
+6. configs.py is everything about configuration.
+7. game.py is everything about game playing.
+8. gomoku_gui.py is used to draw the game. If you need to play with the AlphaZero, use this program.
+9. mpi_train.py is the mpi training entry
+10. plot.py is used to plot the training history
+11. retrospect.py is used to retrospect the training(selfplay) processes
+12. gomoku.pbs is the training description using one thread
+13. gomoku-mpi.pbs is the training description using mpi
+
 # Input features design
-
-Board size 19 * 19
-
-P1 stone 1
-P2 stone 1
-Colour 1
-5-step history (P1 and P2)
-
-19 * 19 * (2 * 5 + 3)
 
 #HPC
 
@@ -89,8 +94,8 @@ conda install -c conda-forge mpi4py==3.0.1=py37hf046da1_0
 ```
 #!/bin/bash
 #PBS -q workq
-#PBS -l nodes=5:ppn=20
-#PBS -l walltime=72:00:00
+#PBS -l nodes=2:ppn=20
+#PBS -l walltime=01:00:00
 #PBS -N gomoku-mpi
 #PBS -o /work/sli49/result-mpi.out
 #PBS -j oe
@@ -109,15 +114,20 @@ mkdir -p $WORK_DIR
 
 cd $PBS_O_WORKDIR
 
-node=5
+node=2
 ppn=20
 
 num_process=$(($node * $ppn))
 
-module unload mvapich2/2.0/INTEL-14.0.2
-module load INTEL/14.0.2
-module load openmpi/1.8.1/INTEL-14.0.2
-mpirun --prefix /usr/local/packages/openmpi/1.8.1/INTEL-14.0.2 -np $num_process -machinefile $PBS_NODEFILE python mpi_train.py
+#module unload mvapich2/2.0/INTEL-14.0.2
+#module load keras-key
+#module load INTEL/14.0.2
+#module load openmpi/1.8.1/INTEL-14.0.2
+module purge
+module load impi/2018.1.163/intel64
+export OMP_NUM_THREAD=1
+#mpirun --prefix /usr/local/packages/openmpi/1.8.1/INTEL-14.0.2 -np $num_process -machinefile $PBS_NODEFILE python test.py
+mpirun -np $num_process -machinefile $PBS_NODEFILE python mpi_train.py
 ```
 
 #Issues
@@ -158,13 +168,13 @@ fi
 
 # User specific environment and startup programs
 
-PATH=$PATH:$HOME/bin:$HOME/packages/python/bin
+#PATH=$PATH:$HOME/bin:$HOME/packages/python/bin
 
-export PATH
+#export PATH
 #export PYTHONPATH=$HOME/packages/python/lib/python3.5.2-anaconda/site-packages:$PYTHONPATH
 #export PYTHONUSERBASE=$HOME/packages/python
 export MODULEPATH=$HOME/my_module:$MODULEPATH
 export PATH
-export PYTHONPATH=/work/sli49/rl-env/rl2/lib/python3.7/site-packages
+export PYTHONPATH=/work/sli49/rl-env/rl/lib/python3.7/site-packages
 ```
 
