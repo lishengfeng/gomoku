@@ -1,0 +1,36 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -l nodes=2:ppn=20
+#PBS -l walltime=01:00:00
+#PBS -N gomoku-mpi
+#PBS -o /work/sli49/result-mpi.out
+#PBS -j oe
+#PBS -A loni_dnn19_rl
+#PBS -m e
+#PBS -M sli49@lsu.edu
+
+date
+
+export HOME_DIR=/home/sli49/
+export WORK_DIR=/work/sli49/
+export PBS_O_WORKDIR=/work/sli49/gomoku
+export PBS_O_HOME=/home/sli49/
+
+mkdir -p $WORK_DIR
+
+cd $PBS_O_WORKDIR
+
+node=2
+ppn=20
+
+num_process=$(($node * $ppn))
+
+#module unload mvapich2/2.0/INTEL-14.0.2
+#module load keras-key
+#module load INTEL/14.0.2
+#module load openmpi/1.8.1/INTEL-14.0.2
+module purge
+module load impi/2018.1.163/intel64
+export OMP_NUM_THREAD=1
+#mpirun --prefix /usr/local/packages/openmpi/1.8.1/INTEL-14.0.2 -np $num_process -machinefile $PBS_NODEFILE python test.py
+mpirun -np $num_process -machinefile $PBS_NODEFILE python mpi_train.py
