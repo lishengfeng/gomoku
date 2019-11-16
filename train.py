@@ -86,9 +86,9 @@ class Train:
             self.time_model_fit = benchmark_state['model_fit']
             self.time_evaluate = benchmark_state['evaluate']
         else:
-            self.time_selfplay = 0
-            self.time_model_fit = 0
-            self.time_evaluate = 0
+            self.time_selfplay = []
+            self.time_model_fit = []
+            self.time_evaluate = []
 
     def get_equi_data(self, play_data):
         """augment the data set by rotation and flipping
@@ -252,7 +252,8 @@ class Train:
                 selfplay_data = {'data_buffer': data_buffer, 'selfplay_state_buffer': selfplay_state_buffer}
                 selfplay_data_list = comm.gather(selfplay_data, root=0)
                 if comm.rank == 0:
-                    self.time_selfplay += time.time() - selfplay_start_time
+                    self.time_selfplay.append(time.time() - selfplay_start_time)
+                    # self.time_selfplay += time.time() - selfplay_start_time
                     self.remaining_game_batch -= len(selfplay_data_list)
                     cur_i = self.game_batch_num - self.remaining_game_batch
                     for sd in selfplay_data_list:
@@ -261,7 +262,8 @@ class Train:
                     if len(self.data_buffer) > self.batch_size:
                         model_fit_start_time = time.time()
                         self.policy_update()
-                        self.time_model_fit += time.time() - model_fit_start_time
+                        self.time_model_fit.append(time.time() - model_fit_start_time)
+                        # self.time_model_fit += time.time() - model_fit_start_time
                         self.save_session_state(cur_i)
                         self.save_training_history()
                         print('current batch: ' + str(cur_i))
@@ -270,7 +272,8 @@ class Train:
                     if cur_i % self.check_freq == 0:
                         evaluate_start_time = time.time()
                         win_ratio = self.policy_evaluate()
-                        self.time_evaluate += time.time() - evaluate_start_time
+                        self.time_evaluate.append(time.time() - evaluate_start_time)
+                        # self.time_evaluate += time.time() - evaluate_start_time
                         if win_ratio > 0.5 or self.previous_model is None:
                             model = self.model_gomoku.model
                             self.previous_model = clone_model(model)
@@ -286,12 +289,14 @@ class Train:
                 data_buffer, selfplay_state_buffer = self.collect_selfplay_data(self.selfplay_per_iter)
                 self.data_buffer.extend(data_buffer)
                 self.selfplay_state_buffer.extend(selfplay_state_buffer)
-                self.time_selfplay += time.time() - selfplay_start_time
+                self.time_selfplay.append(time.time() - selfplay_start_time)
+                # self.time_selfplay += time.time() - selfplay_start_time
 
                 if len(self.data_buffer) > self.batch_size:
                     model_fit_start_time = time.time()
                     self.policy_update()
-                    self.time_model_fit += time.time() - model_fit_start_time
+                    self.time_model_fit.append(time.time() - model_fit_start_time)
+                    # self.time_model_fit += time.time() - model_fit_start_time
                     self.save_session_state(i + 1)
                     self.save_training_history()
                     print('current batch: ' + str(i))
@@ -300,7 +305,8 @@ class Train:
                 if (i + 1) % self.check_freq == 0:
                     evaluate_start_time = time.time()
                     win_ratio = self.policy_evaluate()
-                    self.time_evaluate += time.time() - evaluate_start_time
+                    self.time_evaluate.append(time.time() - evaluate_start_time)
+                    # self.time_evaluate += time.time() - evaluate_start_time
                     if win_ratio > 0.5 or self.previous_model is None:
                         model = self.model_gomoku.model
                         self.previous_model = clone_model(model)
